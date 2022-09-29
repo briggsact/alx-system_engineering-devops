@@ -1,27 +1,21 @@
 #!/usr/bin/env bash
-# prints subdomains and their respective IP addresses 
-
-func () {
- if [ "$#" -ge 2 ]
- then
-  subdomain="$2.$1"
-  record=$(dig "$subdomain" | grep -A1 'ANSWER SECTION:' | awk '{print$4}')
-  ip=$(dig "$subdomain" | grep -A1 'ANSWER SECTION:' | awk '{print$5}')
-  echo "The subdomain $2 is a"$record" record and points to"$ip""
- else
-  declare -a subdomains=("www" "lb-01" "web-01" "web-02")
-  for x in "${subdomains[@]}"; do
-   subdomain="$x.$1"
-   record=$(dig "$subdomain" | grep -A1 'ANSWER SECTION:' | awk '{print$4}')
-   ip=$(dig "$subdomain" | grep -A1 'ANSWER SECTION:' | awk '{print$5}')
-   echo "The subdomain $x is a"$record" record and points to"$ip""
- done 
- fi
+# display dig info on a domain
+show_subdomain () {
+    line=$(dig $1 | awk 'c&&!--c;/ANSWER SECTION:/{c=1}')
+    read -r sub rtype dest<<< $(echo "$line" | awk '{print $1, $4, $5}')
+    sub=$(echo "$sub" | awk 'BEGIN {FS="."} {print $1} END{}')
+    echo The subdomain "$sub" is a "$rtype" record and points to "$dest"
 }
-
-if [ "$#" -ge 2 ]
- then
- func $1 $2
+show_all () {
+    subs=(www.$1 lb-01.$1 web-01.$1 web-02.$1)
+    for sub in ${subs[@]}
+    do
+    show_subdomain $sub
+    done
+}
+if [ ! -z $2 ]
+then
+show_subdomain $2.$1
 else
- func $1
+show_all $1
 fi
